@@ -4,12 +4,26 @@ import os
 from jose import jwt,JWTError
 from fastapi import Depends,HTTPException,status
 from fastapi.security import OAuth2PasswordBearer
+from src.db import User
+from pydantic import BaseModel
 
+
+class CreateUserRequest(BaseModel):
+    email: str
+    password: str
+
+class DeleteUserRequest(BaseModel):
+    password: str
+    
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
 
 ALGORITHM = os.getenv("ALGORITHM")
 SECRET_KEY = os.getenv("SECRET_KEY")
 
-oauth2_bearer = OAuth2PasswordBearer(tokenUrl='auth/token')
+oauth2_bearer = OAuth2PasswordBearer(tokenUrl='auth/google/callback')
 
 bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 
@@ -31,3 +45,20 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token is invalid or expired")
     
+async def add_user_to_db(session, email: str, password: str = None):
+    if password:
+        hashed_password = create_hash(password)
+    else:
+        hashed_password = None 
+
+    new_user = User(
+        email=email,
+        password=hashed_password,
+        google_oauth_token=(password is None),  
+    )
+
+    session.add(new_user)
+    await session.commit()
+    await session.refresh(new_user)
+
+    return new_user

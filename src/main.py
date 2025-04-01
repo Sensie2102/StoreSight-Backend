@@ -3,11 +3,17 @@ from typing import Annotated
 from fastapi.middleware.cors import CORSMiddleware 
 from src.authentication.router import router
 from src.authentication.utils import get_current_user
-
+from starlette.middleware.sessions import SessionMiddleware
+import os
 
 app = FastAPI()
 
 app.include_router(router)
+
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=os.getenv("SESSION_SECRET_KEY")  
+)
 
 app.add_middleware(
     CORSMiddleware,
