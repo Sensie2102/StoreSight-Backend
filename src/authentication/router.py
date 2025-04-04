@@ -3,7 +3,7 @@ from src.db import writable_session, User
 from src.schema import UserResponse
 from sqlalchemy import select
 from .jwtAuth import generate_jwt_token,authenticate_user
-from .utils import verify_password, add_user_to_db, CreateUserRequest,Token,DeleteUserRequest
+from .utils import  add_user_to_db, CreateUserRequest,Token
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import Annotated
 from datetime import timedelta
@@ -25,7 +25,7 @@ async def create_new_user(request: CreateUserRequest):
         if existing:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="User already exists")
         
-        return add_user_to_db(session=session,email=request.email,password=request.password)
+        return await add_user_to_db(session=session,email=request.email,password=request.password)
 
 #Get access token for username and password request 
 @router.post("/token",status_code=status.HTTP_200_OK,response_model=Token)
@@ -40,21 +40,6 @@ async def get_access_token(
     token = generate_jwt_token(user.email,user.id,timedelta(minutes=20))
     
     return {"access_token":token,"token_type":"bearer"}
-    
-#Delete User request
-@router.delete("/",status_code=status.HTTP_200_OK)
-async def delete_user(request: DeleteUserRequest, current_user: UserResponse):
-    if not verify_password(request.password,current_user.password):
-        raise HTTPException(status_code=403, detail="Incorrect password")
-    async with writable_session() as session:
-        user_to_delete = await session.get(User, current_user.id)    
-        if not user_to_delete:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        await session.delete(user_to_delete)
-        await session.commit()
-    
-    return {"message":"User successfully deleted!"}
             
 #Google Oauth Process
 @router.get("/google/login")
