@@ -14,8 +14,6 @@ router = APIRouter(
     tags=['auth']
 )
 
-
-#Authenticate username and password
 @router.post("/signup",status_code=status.HTTP_200_OK,response_model=UserResponse)
 async def create_new_user(request: CreateUserRequest):
     async with writable_session() as session:
@@ -27,7 +25,6 @@ async def create_new_user(request: CreateUserRequest):
         
         return await add_user_to_db(session=session,email=request.email,password=request.password)
 
-#Get access token for username and password request 
 @router.post("/token",status_code=status.HTTP_200_OK,response_model=Token)
 async def get_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
@@ -41,7 +38,6 @@ async def get_access_token(
     
     return {"access_token":token,"token_type":"bearer"}
             
-#Google Oauth Process
 @router.get("/google/login")
 async def google_login(request:Request):
     return await return_google_url(request)
