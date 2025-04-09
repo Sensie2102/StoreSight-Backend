@@ -1,5 +1,5 @@
 from authlib.integrations.starlette_client import OAuth
-from authlib.oauth2.rfc6749 import OAuth2Token
+from fastapi.responses import RedirectResponse
 from fastapi import HTTPException,status
 import os
 from src.db import writable_session, User
@@ -41,7 +41,7 @@ async def get_user_details(request):
         
         token = generate_jwt_token(existing_user.email, existing_user.id, timedelta(minutes=20))
     
-    return {"access_token":token,"token_type":"bearer"}
+    return RedirectResponse(url=f"http://localhost:5173/auth/google/callback?access_token={token}")
     
     
             
