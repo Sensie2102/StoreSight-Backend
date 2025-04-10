@@ -8,10 +8,12 @@ import os
 from src.authentication.utils import verify_password,DeleteUserRequest
 from src.db import writable_session, User
 from src.schema import UserResponse
-
+from src.integrations.integrations_router import integrations_router
 app = FastAPI()
 
 app.include_router(router)
+
+app.include_router(integrations_router)
 
 app.add_middleware(
     SessionMiddleware,
