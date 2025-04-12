@@ -14,6 +14,7 @@ from sqlalchemy import select
 from json.decoder import JSONDecodeError
 from redis.exceptions import RedisError
 
+from db.db_schema import User
 from ..db.db_schema import Integrations 
 from ..db.utils import writable_session
 from .utils import generate_code_challenge,generate_code_verifier
@@ -145,10 +146,25 @@ async def shopify_callback(request: Request, session: AsyncSession = Depends(wri
         raise HTTPException(status_code=500, detail=f"Failed to obtain access token: {str(e)}")
     
     try:
+        user = await session.execute(
+            select(User).where(User.id == user_id)
+        )
+        user = user.scalar_one_or_none()
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # Add Shopify and shop URL to connected_platforms
+        if not user.connected_platforms:
+            user.connected_platforms = {}
+        user.connected_platforms["shopify"] = shop
+
+        encoded_token = base64.b64encode(token_data['access_token'].encode('utf-8')).decode('utf-8')
+        
         integration = Integrations(
             user_id=user_id,
             platform="shopify",
-            refresh_token=token_data['access_token'],  
+            refresh_token=encoded_token,  
             shop_url=shop,
             is_active=True
         )
@@ -199,4 +215,3 @@ async def get_shopify_credentials(user_id,shop, session: AsyncSession = Depends(
         raise HTTPException(status_code=403, detail='Shopify integration is not active.')
     
     return credentials.refresh_token
-    
